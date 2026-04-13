@@ -68,6 +68,7 @@ export default function Home() {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <a href="#pricing" style={{ color: C.warm, fontSize: 14, fontWeight: 500, textDecoration: "none" }}>Pricing</a>
+          <a href="/demo" style={{ color: C.warm, fontSize: 14, fontWeight: 500, textDecoration: "none" }}>See Demo</a>
           <a href="#how-it-works" style={{ color: C.warm, fontSize: 14, fontWeight: 500, textDecoration: "none" }}>How it works</a>
           <Link href="/signup" style={{ ...pill(C.dark, C.white, 14, 18, 10), gap: 6 }}>
             Get started →

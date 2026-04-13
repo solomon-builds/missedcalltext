@@ -9,8 +9,18 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { businessName, ownerName, email, phone, businessPhone, businessType, message } = body;
+    const { businessName, ownerName, email, phone, businessPhone, businessType, message, referralCode } = body;
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://missedcalltext.vercel.app";
+
+    const metadata: Record<string, string> = {
+      businessName: businessName || "",
+      ownerName: ownerName || "",
+      businessPhone: businessPhone || "",
+      notifyPhone: phone || "",
+      businessType: businessType || "Other",
+      autoMessage: message || "",
+    };
+    if (referralCode) metadata.referralCode = referralCode;
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
@@ -18,10 +28,10 @@ export async function POST(req: NextRequest) {
       line_items: [{ price: process.env.STRIPE_PRICE_ID!, quantity: 1 }],
       subscription_data: {
         trial_period_days: 14,
-        metadata: { businessName, ownerName, businessPhone, notifyPhone: phone, businessType: businessType || "Other", autoMessage: message },
+        metadata,
       },
       customer_email: email,
-      metadata: { businessName, ownerName, businessPhone, notifyPhone: phone, businessType: businessType || "Other", autoMessage: message },
+      metadata,
       success_url: `${appUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${appUrl}/signup`,
       allow_promotion_codes: true,

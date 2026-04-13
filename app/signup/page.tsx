@@ -1,36 +1,44 @@
 
 "use client";
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
-export default function SignupPage() {
+const C = {
+  egg: "#F8F5F0", dark: "#1C1D18", warm: "#67675F",
+  muted: "#9C9C94", terra: "#AF4E30", white: "#FEFEFE",
+  teal: "#CBDADC", card: "#F2EFEA", green: "#5A8A6A",
+};
+
+function SignupForm() {
+  const searchParams = useSearchParams();
+  const refCode = searchParams.get("ref") || "";
+
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
-    businessName: "",
-    ownerName: "",
-    email: "",
-    phone: "",
-    businessPhone: "",
-    businessType: "",
-    customMessage: "",
+    businessName: "", ownerName: "", email: "",
+    phone: "", businessPhone: "", businessType: "", customMessage: "",
   });
 
   const defaultMessage = form.businessName
-    ? `Hey! This is ${form.ownerName || "us"} from ${form.businessName}. Sorry I missed your call — I'm with a customer right now. What can I help you with? I'll call you back as soon as I\'m free! 🔧`
-    : "Hey! Sorry I missed your call — I'm with a customer right now. What can I help you with? I'll call you back shortly!";
+    ? `Hey! This is ${form.ownerName || "us"} from ${form.businessName}. Sorry I missed your call — I'm with a customer. What do you need? I'll call you right back!`
+    : "Hey! Sorry I missed your call. I'm with a customer right now. What do you need? I'll call you back shortly!";
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const update = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setForm({ ...form, [e.target.name]: e.target.value });
-  };
 
-  const handleCheckout = async () => {
+  const checkout = async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, message: form.customMessage || defaultMessage }),
+        body: JSON.stringify({
+          ...form,
+          message: form.customMessage || defaultMessage,
+          referralCode: refCode,
+        }),
       });
       const data = await res.json();
       if (data.url) window.location.href = data.url;
@@ -40,116 +48,94 @@ export default function SignupPage() {
     }
   };
 
-  const inputStyle = {
+  const inp: React.CSSProperties = {
     width: "100%", padding: "12px 14px",
-    border: "1.5px solid #e5e7eb", borderRadius: 8,
-    fontSize: 15, fontFamily: "inherit",
-    outline: "none", color: "#0d1117",
-    boxSizing: "border-box" as const,
+    border: "1.5px solid rgba(28,29,24,0.15)", borderRadius: 10,
+    fontSize: 15, fontFamily: "inherit", color: C.dark,
+    background: C.white, outline: "none", boxSizing: "border-box",
   };
-
-  const labelStyle = {
-    display: "block", fontSize: 13, fontWeight: 600,
-    color: "#374151", marginBottom: 6,
-  };
+  const lbl: React.CSSProperties = { display: "block", fontSize: 13, fontWeight: 600, color: C.warm, marginBottom: 6 };
 
   return (
-    <main style={{ minHeight: "100vh", background: "#f9fafb", fontFamily: "inherit" }}>
-      {/* Nav */}
+    <main style={{ minHeight: "100vh", background: C.egg, fontFamily: "'DM Sans', system-ui, sans-serif" }}>
       <nav style={{
-        background: "white", borderBottom: "1px solid #e5e7eb",
+        background: "rgba(248,245,240,0.92)", backdropFilter: "blur(16px)",
+        borderBottom: "1px solid rgba(28,29,24,0.08)",
         padding: "14px 40px", display: "flex", alignItems: "center", justifyContent: "space-between",
       }}>
-        <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
-          <span style={{ fontSize: 20 }}>📲</span>
-          <span style={{ fontWeight: 900, fontSize: 17, color: "#0d1117", letterSpacing: "-0.5px" }}>
-            MissedCall<span style={{ color: "#2563eb" }}>Text</span>
-          </span>
-        </Link>
-        <span style={{ fontSize: 13, color: "#9ca3af" }}>14-day free trial · No credit card required</span>
+        <Link href="/" style={{ fontWeight: 600, fontSize: 17, color: C.dark, textDecoration: "none" }}>📲 MissedCallText</Link>
+        <span style={{ fontSize: 13, color: C.muted }}>14-day free trial · No credit card required</span>
       </nav>
 
-      <div style={{ maxWidth: 580, margin: "48px auto", padding: "0 24px" }}>
-        {/* Steps */}
+      {/* Referral banner */}
+      {refCode && (
+        <div style={{
+          background: C.teal, padding: "12px 24px", textAlign: "center",
+          fontSize: 14, color: C.dark, fontWeight: 500,
+        }}>
+          🎁 You were referred! Your referrer gets a free month when you start your trial.
+        </div>
+      )}
+
+      <div style={{ maxWidth: 560, margin: "48px auto", padding: "0 24px" }}>
+        {/* Step indicators */}
         <div style={{ display: "flex", gap: 8, marginBottom: 32, alignItems: "center" }}>
-          {[1, 2, 3].map(s => (
-            <div key={s} style={{ display: "flex", alignItems: "center", gap: 8, flex: 1 }}>
+          {[1, 2, 3].map((s, i) => (
+            <div key={s} style={{ display: "flex", alignItems: "center", flex: s < 3 ? 1 : "none", gap: 8 }}>
               <div style={{
                 width: 28, height: 28, borderRadius: "50%",
-                background: step >= s ? "#2563eb" : "#e5e7eb",
-                color: step >= s ? "white" : "#9ca3af",
+                background: step >= s ? C.dark : "rgba(28,29,24,0.1)",
+                color: step >= s ? C.white : C.muted,
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: 13, fontWeight: 700, flexShrink: 0,
               }}>{step > s ? "✓" : s}</div>
-              <span style={{ fontSize: 12, color: step >= s ? "#2563eb" : "#9ca3af", fontWeight: 600 }}>
-                {s === 1 ? "Your Info" : s === 2 ? "Your Message" : "Payment"}
+              <span style={{ fontSize: 12, color: step >= s ? C.dark : C.muted, fontWeight: 600 }}>
+                {s === 1 ? "Your Info" : s === 2 ? "Your Message" : "Start Trial"}
               </span>
-              {s < 3 && <div style={{ flex: 1, height: 2, background: step > s ? "#2563eb" : "#e5e7eb" }} />}
+              {s < 3 && <div style={{ flex: 1, height: 1.5, background: step > s ? C.dark : "rgba(28,29,24,0.1)" }} />}
             </div>
           ))}
         </div>
 
         <div style={{
-          background: "white", borderRadius: 16,
-          border: "1.5px solid #e5e7eb", padding: "40px 36px",
-          boxShadow: "0 4px 24px rgba(0,0,0,0.06)",
+          background: C.white, borderRadius: 20, border: "1.5px solid rgba(28,29,24,0.08)",
+          padding: "40px 36px", boxShadow: "0 4px 32px rgba(28,29,24,0.06)",
         }}>
           {step === 1 && (
             <>
-              <h1 style={{ fontSize: 26, fontWeight: 900, letterSpacing: "-1px", color: "#0d1117", marginBottom: 6 }}>
-                Set up your account
-              </h1>
-              <p style={{ fontSize: 14, color: "#9ca3af", marginBottom: 28 }}>
-                Takes about 2 minutes. We'll handle the rest.
-              </p>
+              <h1 style={{ fontSize: 26, fontWeight: 600, letterSpacing: "-0.8px", color: C.dark, marginBottom: 6 }}>Set up your account</h1>
+              <p style={{ fontSize: 14, color: C.muted, marginBottom: 28 }}>About 2 minutes. We'll handle the rest.</p>
               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                {[
+                  { label: "Business Name *", name: "businessName", placeholder: "Sunrise HVAC & Plumbing" },
+                  { label: "Your Name *", name: "ownerName", placeholder: "Maria Garcia" },
+                  { label: "Email *", name: "email", placeholder: "maria@sunrisehvac.com", type: "email" },
+                  { label: "Your Cell (for reply notifications) *", name: "phone", placeholder: "(555) 000-0001", type: "tel" },
+                  { label: "Business Phone (the one customers call) *", name: "businessPhone", placeholder: "(555) 000-0002", type: "tel" },
+                ].map(({ label, name, placeholder, type = "text" }) => (
+                  <div key={name}>
+                    <label style={lbl}>{label}</label>
+                    <input style={inp} name={name} type={type}
+                      value={(form as any)[name]} onChange={update} placeholder={placeholder} />
+                  </div>
+                ))}
                 <div>
-                  <label style={labelStyle}>Business Name *</label>
-                  <input style={inputStyle} name="businessName" value={form.businessName} onChange={handleChange} placeholder="High Value Plumbing" />
-                </div>
-                <div>
-                  <label style={labelStyle}>Your Name *</label>
-                  <input style={inputStyle} name="ownerName" value={form.ownerName} onChange={handleChange} placeholder="Mike Johnson" />
-                </div>
-                <div>
-                  <label style={labelStyle}>Your Email *</label>
-                  <input style={inputStyle} name="email" type="email" value={form.email} onChange={handleChange} placeholder="mike@highvalueplumbing.com" />
-                </div>
-                <div>
-                  <label style={labelStyle}>Your Cell Phone (for reply notifications) *</label>
-                  <input style={inputStyle} name="phone" type="tel" value={form.phone} onChange={handleChange} placeholder="(555) 000-0001" />
-                </div>
-                <div>
-                  <label style={labelStyle}>Your Business Phone (the one customers call) *</label>
-                  <input style={inputStyle} name="businessPhone" type="tel" value={form.businessPhone} onChange={handleChange} placeholder="(555) 000-0002" />
-                  <p style={{ fontSize: 12, color: "#9ca3af", marginTop: 6 }}>
-                    We'll set up call forwarding instructions after you sign up.
-                  </p>
-                </div>
-                <div>
-                  <label style={labelStyle}>Business Type</label>
-                  <select style={inputStyle} name="businessType" value={form.businessType} onChange={handleChange}>
-                    <option value="">Select your trade</option>
-                    <option>Plumber</option>
-                    <option>HVAC</option>
-                    <option>Electrician</option>
-                    <option>Landscaper / Lawn Care</option>
-                    <option>Roofer</option>
-                    <option>Painter</option>
-                    <option>House Cleaning</option>
-                    <option>Handyman</option>
-                    <option>Auto Repair</option>
-                    <option>Other</option>
+                  <label style={lbl}>Business Type</label>
+                  <select style={inp} name="businessType" value={form.businessType} onChange={update}>
+                    <option value="">What do you do?</option>
+                    {["Plumber","HVAC","Electrician","Landscaper / Lawn Care","Roofer","Painter",
+                      "House Cleaning","Handyman","Auto Repair","Salon / Barber","Pet Groomer",
+                      "Med Spa","Pest Control","Pool Service","Other"].map(o => <option key={o}>{o}</option>)}
                   </select>
                 </div>
                 <button
                   onClick={() => setStep(2)}
                   disabled={!form.businessName || !form.ownerName || !form.email || !form.phone || !form.businessPhone}
                   style={{
-                    background: "#2563eb", color: "white", border: "none",
-                    padding: "14px", borderRadius: 10, fontWeight: 700,
+                    background: C.dark, color: C.white, border: "none",
+                    padding: "14px", borderRadius: 100, fontWeight: 500,
                     fontSize: 16, cursor: "pointer", fontFamily: "inherit",
-                    opacity: (!form.businessName || !form.ownerName || !form.email || !form.phone || !form.businessPhone) ? 0.5 : 1,
+                    opacity: (!form.businessName || !form.ownerName || !form.email || !form.phone || !form.businessPhone) ? 0.4 : 1,
                     marginTop: 8,
                   }}
                 >
@@ -161,51 +147,35 @@ export default function SignupPage() {
 
           {step === 2 && (
             <>
-              <h1 style={{ fontSize: 26, fontWeight: 900, letterSpacing: "-1px", color: "#0d1117", marginBottom: 6 }}>
-                Customize your message
-              </h1>
-              <p style={{ fontSize: 14, color: "#9ca3af", marginBottom: 28 }}>
-                This is what gets texted to anyone who calls and doesn't reach you.
+              <h1 style={{ fontSize: 26, fontWeight: 600, letterSpacing: "-0.8px", color: C.dark, marginBottom: 6 }}>Customize your message</h1>
+              <p style={{ fontSize: 14, color: C.muted, marginBottom: 24 }}>
+                This goes to everyone who calls and doesn't reach you.
               </p>
-
-              <div style={{
-                background: "#f0f9ff", border: "1.5px solid #bae6fd",
-                borderRadius: 10, padding: 16, marginBottom: 24,
-              }}>
-                <p style={{ fontSize: 12, fontWeight: 700, color: "#0369a1", marginBottom: 8 }}>
-                  📲 Default message (auto-generated for you):
+              <div style={{ background: C.card, borderRadius: 12, padding: 16, marginBottom: 20 }}>
+                <p style={{ fontSize: 12, fontWeight: 700, color: C.warm, marginBottom: 8, textTransform: "uppercase" as const, letterSpacing: 0.5 }}>
+                  Auto-generated for you:
                 </p>
-                <p style={{ fontSize: 14, color: "#374151", lineHeight: 1.65, fontStyle: "italic" }}>
-                  {defaultMessage}
-                </p>
+                <p style={{ fontSize: 14, color: C.dark, lineHeight: 1.65, fontStyle: "italic" }}>{defaultMessage}</p>
               </div>
-
               <div style={{ marginBottom: 24 }}>
-                <label style={labelStyle}>Custom message (optional — leave blank to use the default above)</label>
-                <textarea
-                  style={{ ...inputStyle, minHeight: 120, resize: "vertical" }}
-                  name="customMessage"
-                  value={form.customMessage}
-                  onChange={handleChange}
-                  placeholder="Write your own message here, or leave blank..."
-                  maxLength={320}
-                />
-                <p style={{ fontSize: 12, color: "#9ca3af", marginTop: 6 }}>
-                  Keep it under 160 characters to avoid split messages. ({(form.customMessage || defaultMessage).length}/320)
+                <label style={lbl}>Custom message (optional)</label>
+                <textarea style={{ ...inp, minHeight: 110, resize: "vertical" as const }}
+                  name="customMessage" value={form.customMessage} onChange={update}
+                  placeholder="Or write your own..." maxLength={320} />
+                <p style={{ fontSize: 12, color: C.muted, marginTop: 6 }}>
+                  {(form.customMessage || defaultMessage).length}/320 characters
                 </p>
               </div>
-
-              <div style={{ display: "flex", gap: 12 }}>
+              <div style={{ display: "flex", gap: 10 }}>
                 <button onClick={() => setStep(1)} style={{
-                  flex: 1, background: "#f3f4f6", color: "#374151",
-                  border: "1.5px solid #e5e7eb", padding: "14px",
-                  borderRadius: 10, fontWeight: 600, fontSize: 15,
+                  flex: 1, background: C.card, color: C.dark, border: "1.5px solid rgba(28,29,24,0.1)",
+                  padding: "13px", borderRadius: 100, fontWeight: 500, fontSize: 15,
                   cursor: "pointer", fontFamily: "inherit",
                 }}>← Back</button>
                 <button onClick={() => setStep(3)} style={{
-                  flex: 2, background: "#2563eb", color: "white",
-                  border: "none", padding: "14px", borderRadius: 10,
-                  fontWeight: 700, fontSize: 16, cursor: "pointer", fontFamily: "inherit",
+                  flex: 2, background: C.dark, color: C.white, border: "none",
+                  padding: "13px", borderRadius: 100, fontWeight: 500, fontSize: 16,
+                  cursor: "pointer", fontFamily: "inherit",
                 }}>Continue →</button>
               </div>
             </>
@@ -213,68 +183,65 @@ export default function SignupPage() {
 
           {step === 3 && (
             <>
-              <h1 style={{ fontSize: 26, fontWeight: 900, letterSpacing: "-1px", color: "#0d1117", marginBottom: 6 }}>
-                Start your free trial
-              </h1>
-              <p style={{ fontSize: 14, color: "#9ca3af", marginBottom: 28 }}>
-                14 days free. $97/month after. Cancel any time.
-              </p>
-
-              {/* Summary */}
-              <div style={{ background: "#f9fafb", borderRadius: 10, padding: 20, marginBottom: 28 }}>
-                <p style={{ fontSize: 13, fontWeight: 700, color: "#374151", marginBottom: 12 }}>Your setup summary:</p>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {[
-                    ["Business", form.businessName],
-                    ["Owner", form.ownerName],
-                    ["Business Phone", form.businessPhone],
-                    ["Reply notifications to", form.phone],
-                    ["Message", (form.customMessage || defaultMessage).slice(0, 80) + "..."],
-                  ].map(([label, val]) => (
-                    <div key={label} style={{ display: "flex", gap: 12, fontSize: 13 }}>
-                      <span style={{ color: "#9ca3af", minWidth: 120 }}>{label}</span>
-                      <span style={{ color: "#0d1117", fontWeight: 500 }}>{val}</span>
-                    </div>
-                  ))}
-                </div>
+              <h1 style={{ fontSize: 26, fontWeight: 600, letterSpacing: "-0.8px", color: C.dark, marginBottom: 6 }}>Start your free trial</h1>
+              <p style={{ fontSize: 14, color: C.muted, marginBottom: 24 }}>14 days free · $97/mo after · Cancel anytime</p>
+              <div style={{ background: C.card, borderRadius: 12, padding: 20, marginBottom: 24 }}>
+                {[
+                  ["Business", form.businessName],
+                  ["Owner", form.ownerName],
+                  ["Business phone", form.businessPhone],
+                  ["Notifications to", form.phone],
+                ].map(([label, val]) => (
+                  <div key={label} style={{ display: "flex", gap: 12, fontSize: 13, marginBottom: 8 }}>
+                    <span style={{ color: C.muted, minWidth: 130 }}>{label}</span>
+                    <span style={{ color: C.dark, fontWeight: 500 }}>{val}</span>
+                  </div>
+                ))}
+                {refCode && (
+                  <div style={{ display: "flex", gap: 12, fontSize: 13, marginTop: 4 }}>
+                    <span style={{ color: C.muted, minWidth: 130 }}>Referred by</span>
+                    <span style={{ color: C.green, fontWeight: 600 }}>🎁 Code: {refCode}</span>
+                  </div>
+                )}
               </div>
-
               <div style={{
-                background: "#f0fdf4", border: "1.5px solid #bbf7d0",
+                background: "#F0FDF4", border: "1.5px solid #BBF7D0",
                 borderRadius: 10, padding: 16, marginBottom: 24,
               }}>
-                <p style={{ fontSize: 13, color: "#15803d", lineHeight: 1.65 }}>
-                  ✅ <strong>14 days completely free.</strong> We'll send you setup instructions immediately after. Your card is only charged after the trial ends — and you can cancel anytime before.
+                <p style={{ fontSize: 13, color: "#15803D", lineHeight: 1.65 }}>
+                  ✅ <strong>14 days completely free.</strong> Setup instructions sent immediately. Your card is only charged after the trial ends.
                 </p>
               </div>
-
-              <div style={{ display: "flex", gap: 12 }}>
+              <div style={{ display: "flex", gap: 10 }}>
                 <button onClick={() => setStep(2)} style={{
-                  flex: 1, background: "#f3f4f6", color: "#374151",
-                  border: "1.5px solid #e5e7eb", padding: "14px",
-                  borderRadius: 10, fontWeight: 600, fontSize: 15,
+                  flex: 1, background: C.card, color: C.dark, border: "1.5px solid rgba(28,29,24,0.1)",
+                  padding: "13px", borderRadius: 100, fontWeight: 500, fontSize: 15,
                   cursor: "pointer", fontFamily: "inherit",
                 }}>← Back</button>
-                <button
-                  onClick={handleCheckout}
-                  disabled={loading}
-                  style={{
-                    flex: 2, background: "#f97316", color: "white",
-                    border: "none", padding: "14px", borderRadius: 10,
-                    fontWeight: 800, fontSize: 16, cursor: loading ? "wait" : "pointer",
-                    fontFamily: "inherit", opacity: loading ? 0.7 : 1,
-                  }}
-                >
+                <button onClick={checkout} disabled={loading} style={{
+                  flex: 2, background: C.terra, color: C.white, border: "none",
+                  padding: "13px", borderRadius: 100, fontWeight: 600, fontSize: 16,
+                  cursor: loading ? "wait" : "pointer", fontFamily: "inherit",
+                  opacity: loading ? 0.7 : 1,
+                }}>
                   {loading ? "Loading..." : "Start Free Trial →"}
                 </button>
               </div>
-              <p style={{ fontSize: 11, color: "#9ca3af", textAlign: "center", marginTop: 12 }}>
-                🔒 Secured by Stripe. We never see your card details.
+              <p style={{ fontSize: 11, color: C.muted, textAlign: "center" as const, marginTop: 12 }}>
+                🔒 Secured by Stripe
               </p>
             </>
           )}
         </div>
       </div>
     </main>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: "100vh", background: "#F8F5F0" }} />}>
+      <SignupForm />
+    </Suspense>
   );
 }
